@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Daily Shopping Tracker</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #748096;
+      --line: #e6eaf2;
+      --primary: #4f7cff;
+      --primary-2: #7b61ff;
+      --accent: #12c7a8;
+      --warning: #ffb020;
+      --danger: #ff5c7a;
+      --shadow: 0 18px 45px rgba(39, 55, 93, .12);
+      --soft-shadow: 0 10px 24px rgba(39, 55, 93, .08);
+      --radius-lg: 28px;
+      --radius-md: 20px;
+      --radius-sm: 14px;
+      --nav-height: 76px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    body { overflow-x: hidden; }
+    button, input, select, textarea { font: inherit; }
+    button { border: 0; cursor: pointer; }
+
+    .app {
+      width: 100%;
+      min-height: 100dvh;
+      max-width: 520px;
+      margin: 0 auto;
+      position: relative;
+      padding: max(14px, env(safe-area-inset-top)) 14px calc(var(--nav-height) + 18px + env(safe-area-inset-bottom));
+    }
+
+    .hero {
+      background:
+        radial-gradient(circle at 15% 8%, rgba(255,255,255,.56), transparent 25%),
+        linear-gradient(135deg, #315dff 0%, #7a5dff 48%, #17c6a7 100%);
+      color: #fff;
+      border-radius: 30px;
+      padding: 22px 20px 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 170px;
+      height: 170px;
+      right: -70px;
+      top: -50px;
+      border: 26px solid rgba(255,255,255,.14);
+      border-radius: 50%;
+    }
+    .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; position: relative; z-index: 1; }
+    .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .86; margin-bottom: 5px; }
+    .hero h1 { margin: 0; font-size: 24px; line-height: 1.18; font-weight: 800; }
+    .date-pill { background: rgba(255,255,255,.17); border: 1px solid rgba(255,255,255,.22); padding: 9px 12px; border-radius: 999px; font-size: 12px; white-space: nowrap; backdrop-filter: blur(10px); }
+    .summary-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 10px; margin-top: 18px; position: relative; z-index: 1; }
+    .summary-card { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.2); border-radius: 20px; padding: 13px; backdrop-filter: blur(10px); min-width: 0; }
+    .summary-card .label { font-size: 12px; opacity: .84; margin-bottom: 6px; }
+    .summary-card .value { font-weight: 850; font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .summary-card .sub { margin-top: 5px; font-size: 11px; opacity: .78; }
+
+    .page { display: none; animation: rise .18s ease-out; }
+    .page.active { display: block; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .section-title { display: flex; align-items: center; justify-content: space-between; margin: 18px 2px 10px; gap: 12px; }
+    .section-title h2 { margin: 0; font-size: 18px; }
+    .hint { color: var(--muted); font-size: 12px; }
+
+    .card { background: var(--card); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--soft-shadow); border: 1px solid rgba(255,255,255,.64); }
+    .stack { display: grid; gap: 12px; }
+    .field { display: grid; gap: 7px; }
+    .field label { font-size: 12px; font-weight: 750; color: #4d5870; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #f9fbff;
+      color: var(--text);
+      padding: 13px 13px;
+      outline: none;
+      transition: border .15s, box-shadow .15s, background .15s;
+    }
+    .field textarea { min-height: 76px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(79,124,255,.58); box-shadow: 0 0 0 4px rgba(79,124,255,.12); background: #fff; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+    .quick-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+    .quick-row::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; border-radius: 999px; padding: 9px 12px; background: #edf2ff; color: #435276; font-size: 12px; font-weight: 720; }
+    .chip.active { background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: #fff; box-shadow: 0 8px 16px rgba(79,124,255,.2); }
+
+    .btn { width: 100%; padding: 14px 16px; border-radius: 18px; font-weight: 830; color: #fff; background: linear-gradient(135deg, var(--primary), var(--primary-2)); box-shadow: 0 12px 22px rgba(79,124,255,.22); }
+    .btn.secondary { color: #33405a; background: #eef3ff; box-shadow: none; }
+    .btn.danger { background: linear-gradient(135deg, #ff6a88, #ff416c); box-shadow: 0 12px 22px rgba(255,92,122,.18); }
+    .btn.ghost { color: var(--primary); background: transparent; box-shadow: none; padding: 10px; }
+    .btn.small { width: auto; padding: 10px 12px; border-radius: 14px; font-size: 12px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .filter-box { display: grid; gap: 10px; }
+    .search-line { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .icon-btn { width: 46px; height: 46px; border-radius: 16px; background: #eef3ff; color: var(--primary); font-weight: 900; font-size: 18px; }
+
+    .records { display: grid; gap: 10px; margin-top: 12px; }
+    .day-block { display: grid; gap: 8px; }
+    .day-head { display: flex; align-items: center; justify-content: space-between; color: #4d5870; font-size: 12px; font-weight: 800; padding: 0 3px; }
+    .record-card { background: #fff; border-radius: 22px; padding: 13px; box-shadow: var(--soft-shadow); border: 1px solid rgba(230,234,242,.7); display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+    .record-icon { width: 44px; height: 44px; border-radius: 17px; display: grid; place-items: center; background: #f0f4ff; font-size: 21px; }
+    .record-main { min-width: 0; }
+    .record-title { font-size: 15px; font-weight: 850; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .record-meta { margin-top: 4px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .record-right { text-align: right; display: grid; gap: 7px; }
+    .amount { font-weight: 900; font-size: 16px; }
+    .mini-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .mini { padding: 6px 8px; border-radius: 999px; background: #f2f5fb; color: #657188; font-size: 11px; font-weight: 800; }
+
+    .empty { text-align: center; padding: 26px 18px; color: var(--muted); background: #fff; border-radius: 24px; box-shadow: var(--soft-shadow); }
+    .empty .emoji { font-size: 42px; display: block; margin-bottom: 8px; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .metric { background: #fff; border-radius: 22px; padding: 14px; box-shadow: var(--soft-shadow); }
+    .metric .k { color: var(--muted); font-size: 12px; }
+    .metric .v { margin-top: 6px; font-weight: 900; font-size: 20px; }
+    .donut-wrap { display: grid; grid-template-columns: 132px 1fr; gap: 14px; align-items: center; }
+    .donut { width: 132px; height: 132px; border-radius: 50%; position: relative; background: conic-gradient(var(--primary) 0deg, var(--primary) 360deg); box-shadow: inset 0 0 0 1px rgba(0,0,0,.02); }
+    .donut::after { content: ""; position: absolute; inset: 22px; background: #fff; border-radius: 50%; box-shadow: inset 0 0 0 1px #edf1f8; }
+    .donut-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; z-index: 1; pointer-events: none; }
+    .donut-center b { font-size: 16px; display: block; }
+    .donut-center span { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
+    .legend { display: grid; gap: 8px; }
+    .legend-item { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 12px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+    .trend { display: grid; gap: 8px; }
+    .bar-row { display: grid; grid-template-columns: 50px 1fr 58px; gap: 8px; align-items: center; font-size: 12px; color: #4d5870; }
+    .bar-track { height: 12px; background: #eef2f8; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; min-width: 2px; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--primary)); }
+    .top-list { display: grid; gap: 8px; }
+    .top-line { display: grid; grid-template-columns: auto 1fr auto; gap: 9px; align-items: center; background: #f8faff; border: 1px solid #edf1f8; border-radius: 16px; padding: 9px; font-size: 12px; }
+
+    .budget-card { overflow: hidden; }
+    .budget-header { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .budget-num { font-weight: 900; font-size: 26px; margin-top: 5px; }
+    .progress { width: 100%; height: 14px; border-radius: 999px; background: #eef2f8; overflow: hidden; margin: 14px 0 8px; }
+    .progress-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--primary)); width: 0%; transition: width .18s; }
+    .progress-fill.warn { background: linear-gradient(90deg, var(--warning), #ff7c2f); }
+    .progress-fill.danger { background: linear-gradient(90deg, var(--danger), #ff304f); }
+
+    .data-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .file-input { display: none; }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      width: min(calc(100% - 28px), 492px);
+      height: var(--nav-height);
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(230,234,242,.86);
+      border-radius: 26px;
+      box-shadow: 0 18px 50px rgba(34, 48, 83, .18);
+      backdrop-filter: blur(16px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      padding: 8px;
+      z-index: 20;
+    }
+    .nav-btn { border-radius: 20px; background: transparent; color: #748096; display: grid; place-items: center; gap: 2px; font-size: 11px; font-weight: 800; }
+    .nav-btn .ico { font-size: 20px; line-height: 1; }
+    .nav-btn.active { background: #edf3ff; color: var(--primary); }
+
+    .toast { position: fixed; left: 50%; bottom: calc(var(--nav-height) + 25px + env(safe-area-inset-bottom)); transform: translate(-50%, 12px); opacity: 0; pointer-events: none; background: #172033; color: #fff; border-radius: 999px; padding: 11px 14px; font-size: 13px; box-shadow: 0 14px 30px rgba(0,0,0,.2); transition: .18s; z-index: 60; max-width: calc(100% - 32px); text-align: center; }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+    .modal-mask { position: fixed; inset: 0; background: rgba(16,24,40,.42); display: none; align-items: flex-end; justify-content: center; z-index: 50; padding: 14px; }
+    .modal-mask.show { display: flex; }
+    .modal { width: min(100%, 492px); background: #fff; border-radius: 28px; padding: 18px; box-shadow: 0 -18px 55px rgba(20,30,54,.2); animation: sheet .18s ease-out; }
+    @keyframes sheet { from { transform: translateY(18px); opacity: .2; } to { transform: translateY(0); opacity: 1; } }
+    .modal h3 { margin: 0 0 8px; font-size: 18px; }
+    .modal p { margin: 0 0 16px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    @media (max-width: 370px) {
+      .hero h1 { font-size: 21px; }
+      .summary-grid, .grid-2, .stat-grid, .donut-wrap { grid-template-columns: 1fr; }
+      .date-pill { display: none; }
+      .record-card { grid-template-columns: auto 1fr; }
+      .record-right { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; text-align: left; }
+      .data-tools, .actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="eyebrow">Daily Shopping</div>
+          <h1>Shopping Log & Spending Insights</h1>
+        </div>
+        <div class="date-pill" id="todayPill">Today</div>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="label">This Month</div>
+          <div class="value" id="monthTotal">$0.00</div>
+          <div class="sub" id="monthCount">0 records</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Today</div>
+          <div class="value" id="todayTotal">$0.00</div>
+          <div class="sub" id="budgetHint">No budget set</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page active" id="page-add">
+      <div class="section-title">
+        <h2>Add Purchase</h2>
+        <span class="hint">More details make better insights</span>
+      </div>
+      <form class="card stack" id="recordForm" autocomplete="off">
+        <input type="hidden" id="editId" />
+        <div class="grid-2">
+          <div class="field">
+            <label for="dateInput">Date</label>
+            <input id="dateInput" type="date" required />
+          </div>
+          <div class="field">
+            <label for="amountInput">Amount</label>
+            <input id="amountInput" type="number" min="0.01" step="0.01" placeholder="e.g. 25.80" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="nameInput">Item Name</label>
+          <input id="nameInput" type="text" maxlength="40" placeholder="e.g. Milk, lunch, clothes" required />
+        </div>
+        <div class="field">
+          <label>Quick Categories</label>
+          <div class="quick-row" id="categoryChips"></div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="categoryInput">Category</label>
+            <select id="categoryInput"></select>
+          </div>
+          <div class="field">
+            <label for="paymentInput">Payment Method</label>
+            <select id="paymentInput"></select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="quantityInput">Quantity</label>
+            <input id="quantityInput" type="number" min="1" step="1" value="1" />
+          </div>
+          <div class="field">
+            <label for="shopInput">Store / Platform</label>
+            <input id="shopInput" type="text" maxlength="30" placeholder="Supermarket, online store, etc." />
+          </div>
+        </div>
+        <div class="field">
+          <label for="noteInput">Notes</label>
+          <textarea id="noteInput" maxlength="120" placeholder="Discounts, purpose, receipt notes, etc."></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" type="button" id="resetFormBtn">Clear</button>
+          <button class="btn" type="submit" id="saveBtn">Save Record</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="page" id="page-records">
+      <div class="section-title">
+        <h2>Purchase Details</h2>
+        <button class="btn ghost small" type="button" id="jumpAddBtn">+ Add</button>
+      </div>
+      <div class="card filter-box">
+        <div class="search-line">
+          <div class="field">
+            <input id="searchInput" type="search" placeholder="Search items, stores, notes" />
+          </div>
+          <button class="icon-btn" id="clearSearchBtn" type="button">×</button>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="periodFilter">Time Range</label>
+            <select id="periodFilter">
+              <option value="all">All</option>
+              <option value="today">Today</option>
+              <option value="week">Last 7 Days</option>
+              <option value="month" selected>This Month</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="categoryFilter">Category</label>
+            <select id="categoryFilter"></select>
+          </div>
+        </div>
+      </div>
+      <div class="records" id="recordsList"></div>
+    </section>
+
+    <section class="page" id="page-stats">
+      <div class="section-title">
+        <h2>Spending Stats</h2>
+        <select id="statsPeriod" class="chip" aria-label="Stats period">
+          <option value="week">Last 7 Days</option>
+          <option value="month" selected>This Month</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div class="stat-grid" id="metricsGrid"></div>
+      <div class="section-title"><h2>Category Share</h2><span class="hint" id="categoryTotalHint"></span></div>
+      <div class="card donut-wrap">
+        <div class="donut" id="donut"><div class="donut-center"><div><b id="donutValue">$0</b><span>Total</span></div></div></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="section-title"><h2>Daily Trend</h2><span class="hint">Grouped by date</span></div>
+      <div class="card trend" id="trendList"></div>
+      <div class="section-title"><h2>Top Items</h2><span class="hint">Find your main expenses</span></div>
+      <div class="card top-list" id="topItems"></div>
+    </section>
+
+    <section class="page" id="page-budget">
+      <div class="section-title">
+        <h2>Budget</h2>
+        <span class="hint">Track your monthly spending limit</span>
+      </div>
+      <div class="card budget-card">
+        <div class="budget-header">
+          <div>
+            <div class="hint">Monthly Budget Usage</div>
+            <div class="budget-num" id="budgetUsedText">$0 / $0</div>
+          </div>
+          <div class="record-icon">📊</div>
+        </div>
+        <div class="progress"><div class="progress-fill" id="budgetProgress"></div></div>
+        <div class="hint" id="budgetStatus">Set a budget to track your remaining balance</div>
+      </div>
+      <div class="section-title"><h2>Set Budget</h2></div>
+      <div class="card stack">
+        <div class="field">
+          <label for="budgetInput">Monthly Budget</label>
+          <input id="budgetInput" type="number" min="0" step="0.01" placeholder="e.g. 3000" />
+        </div>
+        <button class="btn" type="button" id="saveBudgetBtn">Save Budget</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <button class="nav-btn active" data-page="add" type="button"><span class="ico">＋</span><span>Add</span></button>
+    <button class="nav-btn" data-page="records" type="button"><span class="ico">🧾</span><span>Records</span></button>
+    <button class="nav-btn" data-page="stats" type="button"><span class="ico">📈</span><span>Stats</span></button>
+    <button class="nav-btn" data-page="budget" type="button"><span class="ico">⚙️</span><span>Budget</span></button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-mask" id="modalMask" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h3 id="modalTitle">Confirm Action</h3>
+      <p id="modalMessage">Continue with this action?</p>
+      <div class="modal-actions">
+        <button class="btn secondary" type="button" id="modalCancel">Cancel</button>
+        <button class="btn danger" type="button" id="modalOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY = 'daily-shopping-tracker-v1';
+      const SETTINGS_KEY = 'daily-shopping-tracker-settings-v1';
+      const categories = [
+        { name: 'Food', icon: '🍜', color: '#4f7cff' },
+        { name: 'Daily Goods', icon: '🧴', color: '#12c7a8' },
+        { name: 'Clothing', icon: '👕', color: '#ff8a4c' },
+        { name: 'Transport', icon: '🚕', color: '#7b61ff' },
+        { name: 'Entertainment', icon: '🎮', color: '#ff5c7a' },
+        { name: 'Electronics', icon: '📱', color: '#2ec5ff' },
+        { name: 'Health', icon: '💊', color: '#3ac47d' },
+        { name: 'Other', icon: '🛒', color: '#98a2b3' }
+      ];
+      const payments = ['Cash', 'Debit Card', 'WeChat Pay', 'Alipay', 'Credit Card', 'Other'];
+
+      let records = loadRecords();
+      let settings = loadSettings();
+      let pendingAction = null;
+
+      const $ = (id) => document.getElementById(id);
+      const fmtMoney = (value) => '$' + Number(value || 0).toFixed(2);
+      const todayString = () => formatDate(new Date());
+
+      function loadRecords() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          return Array.isArray(parsed) ? parsed.filter(isValidRecord) : [];
+        } catch (err) {
+          return [];
+        }
+      }
+
+      function loadSettings() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+          return { budget: Number(parsed.budget || 0) };
+        } catch (err) {
+          return { budget: 0 };
+        }
+      }
+
+      function saveRecords() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      }
+
+      function saveSettings() {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      }
+
+      function isValidRecord(item) {
+        return item && typeof item.id === 'string' && typeof item.name === 'string' && typeof item.date === 'string' && Number(item.amount) >= 0;
+      }
+
+      function formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+      }
+
+      function parseDate(dateStr) {
+        const parts = String(dateStr || '').split('-').map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) return new Date();
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      }
+
+      function sameMonth(dateStr, base = new Date()) {
+        const d = parseDate(dateStr);
+        return d.getFullYear() === base.getFullYear() && d.getMonth() === base.getMonth();
+      }
+
+      function withinLastDays(dateStr, days) {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1));
+        const target = parseDate(dateStr);
+        return target >= start && target <= new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      }
+
+      function getCategory(name) {
+        return categories.find(c => c.name === name) || categories[categories.length - 1];
+      }
+
+      function sum(list) {
+        return list.reduce((acc, item) => acc + Number(item.amount || 0), 0);
+      }
+
+      function showToast(text) {
+        const toast = $('toast');
+        toast.textContent = text;
+        toast.classList.add('show');
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.classList.remove('show'), 1800);
+      }
+
+      function showConfirm(title, message, action) {
+        $('modalTitle').textContent = title;
+        $('modalMessage').textContent = message;
+        pendingAction = action;
+        $('modalMask').classList.add('show');
+      }
+
+      function hideConfirm() {
+        pendingAction = null;
+        $('modalMask').classList.remove('show');
+      }
+
+      function renderSelects() {
+        $('categoryInput').innerHTML = categories.map(c => `<option value="${c.name}">${c.icon} ${c.name}</option>`).join('');
+        $('paymentInput').innerHTML = payments.map(p => `<option value="${p}">${p}</option>`).join('');
+        $('categoryFilter').innerHTML = '<option value="all">All Categories</option>' + categories.map(c => `<option value="${c.name}">${c.icon} ${c.name}</option>`).join('');
+        $('categoryChips').innerHTML = categories.map((c, index) => `<button class="chip ${index === 0 ? 'active' : ''}" type="button" data-category="${c.name}">${c.icon} ${c.name}</button>`).join('');
+      }
+
+      function setCategory(name) {
+        $('categoryInput').value = name;
+        document.querySelectorAll('#categoryChips .chip').forEach(chip => chip.classList.toggle('active', chip.dataset.category === name));
+      }
+
+      function resetForm(keepDate = true) {
+        $('editId').value = '';
+        $('recordForm').reset();
+        $('dateInput').value = keepDate ? todayString() : '';
+        $('quantityInput').value = 1;
+        setCategory(categories[0].name);
+        $('saveBtn').textContent = 'Save Record';
+      }
+
+      function readForm() {
+        const name = $('nameInput').value.trim();
+        const amount = Number($('amountInput').value);
+        const quantity = Math.max(1, Number.parseInt($('quantityInput').value || '1', 10));
+        const date = $('dateInput').value || todayString();
+        if (!name) return { error: 'Please enter the item name.' };
+        if (!Number.isFinite(amount) || amount <= 0) return { error: 'Please enter a valid amount.' };
+        return {
+          id: $('editId').value || 'r_' + Date.now() + '_' + Math.random().toString(16).slice(2),
+          date,
+          name,
+          amount: Number(amount.toFixed(2)),
+          category: $('categoryInput').value,
+          payment: $('paymentInput').value,
+          quantity,
+          shop: $('shopInput').value.trim(),
+          note: $('noteInput').value.trim(),
+          updatedAt: new Date().toISOString()
+        };
+      }
+
+      function handleSubmit(evt) {
+        evt.preventDefault();
+        const data = readForm();
+        if (data.error) {
+          showToast(data.error);
+          return;
+        }
+        const existingIndex = records.findIndex(r => r.id === data.id);
+        if (existingIndex >= 0) {
+          records[existingIndex] = data;
+          showToast('Record updated.');
+        } else {
+          records.unshift(data);
+          showToast('Purchase saved.');
+        }
+        records.sort((a, b) => (b.date + b.updatedAt).localeCompare(a.date + a.updatedAt));
+        saveRecords();
+        resetForm(true);
+        refreshAll();
+      }
+
+      function editRecord(id) {
+        const item = records.find(r => r.id === id);
+        if (!item) return;
+        $('editId').value = item.id;
+        $('dateInput').value = item.date;
+        $('nameInput').value = item.name;
+        $('amountInput').value = item.amount;
+        setCategory(item.category);
+        $('paymentInput').value = item.payment || payments[0];
+        $('quantityInput').value = item.quantity || 1;
+        $('shopInput').value = item.shop || '';
+        $('noteInput').value = item.note || '';
+        $('saveBtn').textContent = 'Update Record';
+        switchPage('add');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function deleteRecord(id) {
+        const item = records.find(r => r.id === id);
+        if (!item) return;
+        showConfirm('Delete this record?', `“${item.name}” ${fmtMoney(item.amount)} will be removed from your records.`, () => {
+          records = records.filter(r => r.id !== id);
+          saveRecords();
+          refreshAll();
+          showToast('Record deleted.');
+        });
+      }
+
+      function getFilteredRecords(period, category, keyword) {
+        const q = String(keyword || '').trim().toLowerCase();
+        return records.filter(item => {
+          let periodOk = true;
+          if (period === 'today') periodOk = item.date === todayString();
+          if (period === 'week') periodOk = withinLastDays(item.date, 7);
+          if (period === 'month') periodOk = sameMonth(item.date);
+          const categoryOk = !category || category === 'all' || item.category === category;
+          const haystack = [item.name, item.shop, item.note, item.category, item.payment].join(' ').toLowerCase();
+          const searchOk = !q || haystack.includes(q);
+          return periodOk && categoryOk && searchOk;
+        });
+      }
+
+      function renderHeader() {
+        const now = new Date();
+        const weekNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        $('todayPill').textContent = `${weekNames[now.getDay()]} · ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        const monthRecords = records.filter(r => sameMonth(r.date, now));
+        const todayRecords = records.filter(r => r.date === todayString());
+        $('monthTotal').textContent = fmtMoney(sum(monthRecords));
+        $('monthCount').textContent = `${monthRecords.length} records`;
+        $('todayTotal').textContent = fmtMoney(sum(todayRecords));
+        if (settings.budget > 0) {
+          const used = sum(monthRecords);
+          const left = settings.budget - used;
+          $('budgetHint').textContent = left >= 0 ? `Left ${fmtMoney(left)}` : `Over ${fmtMoney(Math.abs(left))}`;
+        } else {
+          $('budgetHint').textContent = 'No budget set';
+        }
+      }
+
+      function groupByDate(list) {
+        return list.reduce((acc, item) => {
+          if (!acc[item.date]) acc[item.date] = [];
+          acc[item.date].push(item);
+          return acc;
+        }, {});
+      }
+
+      function renderRecords() {
+        const list = getFilteredRecords($('periodFilter').value, $('categoryFilter').value, $('searchInput').value);
+        const wrap = $('recordsList');
+        if (list.length === 0) {
+          wrap.innerHTML = '<div class="empty"><span class="emoji">🛍️</span>No matching purchase records yet.</div>';
+          return;
+        }
+        const grouped = groupByDate(list);
+        const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+        wrap.innerHTML = dates.map(date => {
+          const items = grouped[date];
+          const dayTotal = fmtMoney(sum(items));
+          const cards = items.map(item => {
+            const c = getCategory(item.category);
+            const shopText = item.shop ? ` · ${escapeHtml(item.shop)}` : '';
+            const noteText = item.note ? ` · ${escapeHtml(item.note)}` : '';
+            return `<article class="record-card">
+              <div class="record-icon" style="background:${hexToRgba(c.color, .12)}">${c.icon}</div>
+              <div class="record-main">
+                <div class="record-title">${escapeHtml(item.name)}</div>
+                <div class="record-meta">${escapeHtml(item.category)} · ${escapeHtml(item.payment || 'Other')} · x${item.quantity || 1}${shopText}${noteText}</div>
+              </div>
+              <div class="record-right">
+                <div class="amount">${fmtMoney(item.amount)}</div>
+                <div class="mini-actions">
+                  <button class="mini" type="button" data-edit="${item.id}">Edit</button>
+                  <button class="mini" type="button" data-delete="${item.id}">Delete</button>
+                </div>
+              </div>
+            </article>`;
+          }).join('');
+          return `<div class="day-block"><div class="day-head"><span>${friendlyDate(date)}</span><span>${items.length} items · ${dayTotal}</span></div>${cards}</div>`;
+        }).join('');
+      }
+
+      function friendlyDate(date) {
+        if (date === todayString()) return 'Today';
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (date === formatDate(yesterday)) return 'Yesterday';
+        return date;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+      }
+
+      function hexToRgba(hex, alpha) {
+        const value = hex.replace('#', '');
+        const bigint = parseInt(value, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
+      function periodRecords(period) {
+        if (period === 'week') return records.filter(r => withinLastDays(r.date, 7));
+        if (period === 'month') return records.filter(r => sameMonth(r.date));
+        return [...records];
+      }
+
+      function renderStats() {
+        const list = periodRecords($('statsPeriod').value);
+        const total = sum(list);
+        const avg = list.length ? total / list.length : 0;
+        const uniqueDays = new Set(list.map(r => r.date)).size || 0;
+        const dayAvg = uniqueDays ? total / uniqueDays : 0;
+        const categoryTotals = aggregate(list, 'category');
+        const topCategory = categoryTotals[0] ? categoryTotals[0].key : 'None';
+        $('metricsGrid').innerHTML = [
+          ['Total Spent', fmtMoney(total)],
+          ['Records', String(list.length)],
+          ['Avg. Per Record', fmtMoney(avg)],
+          ['Top Category', topCategory],
+          ['Tracked Days', uniqueDays + ' days'],
+          ['Daily Average', fmtMoney(dayAvg)]
+        ].map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+        renderDonut(categoryTotals, total);
+        renderTrend(list);
+        renderTopItems(list);
+      }
+
+      function aggregate(list, key) {
+        const map = new Map();
+        list.forEach(item => {
+          const name = item[key] || 'Other';
+          map.set(name, (map.get(name) || 0) + Number(item.amount || 0));
+        });
+        return Array.from(map.entries()).map(([k, v]) => ({ key: k, value: v })).sort((a, b) => b.value - a.value);
+      }
+
+      function renderDonut(categoryTotals, total) {
+        $('donutValue').textContent = fmtMoney(total);
+        $('categoryTotalHint').textContent = total > 0 ? `${categoryTotals.length} categories` : 'No data';
+        if (!total) {
+          $('donut').style.background = '#edf1f8';
+          $('legend').innerHTML = '<div class="hint">No stats yet. Add a few purchases first.</div>';
+          return;
+        }
+        let cursor = 0;
+        const segments = categoryTotals.map(item => {
+          const c = getCategory(item.key);
+          const start = cursor;
+          const deg = item.value / total * 360;
+          cursor += deg;
+          return `${c.color} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg`;
+        });
+        $('donut').style.background = `conic-gradient(${segments.join(', ')})`;
+        $('legend').innerHTML = categoryTotals.slice(0, 6).map(item => {
+          const c = getCategory(item.key);
+          const pct = total ? Math.round(item.value / total * 100) : 0;
+          return `<div class="legend-item"><span class="dot" style="background:${c.color}"></span><span>${c.icon} ${escapeHtml(item.key)} · ${pct}%</span><b>${fmtMoney(item.value)}</b></div>`;
+        }).join('');
+      }
+
+      function renderTrend(list) {
+        const map = new Map();
+        list.forEach(item => map.set(item.date, (map.get(item.date) || 0) + Number(item.amount || 0)));
+        let rows = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+        if ($('statsPeriod').value === 'week') {
+          const dates = [];
+          const now = new Date();
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            const ds = formatDate(d);
+            dates.push([ds, map.get(ds) || 0]);
+          }
+          rows = dates;
+        }
+        rows = rows.slice(-14);
+        const max = Math.max(...rows.map(r => r[1]), 1);
+        $('trendList').innerHTML = rows.length ? rows.map(([date, value]) => {
+          const pct = Math.max(2, value / max * 100);
+          return `<div class="bar-row"><span>${date.slice(5)}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><b>${fmtMoney(value)}</b></div>`;
+        }).join('') : '<div class="hint">No trend data yet.</div>';
+      }
+
+      function renderTopItems(list) {
+        const map = new Map();
+        list.forEach(item => {
+          const old = map.get(item.name) || { count: 0, total: 0, category: item.category };
+          old.count += 1;
+          old.total += Number(item.amount || 0);
+          map.set(item.name, old);
+        });
+        const rows = Array.from(map.entries()).map(([name, info]) => ({ name, ...info })).sort((a, b) => b.total - a.total).slice(0, 6);
+        $('topItems').innerHTML = rows.length ? rows.map((row, index) => {
+          const c = getCategory(row.category);
+          return `<div class="top-line"><b>#${index + 1}</b><span>${c.icon} ${escapeHtml(row.name)} · ${row.count} times</span><b>${fmtMoney(row.total)}</b></div>`;
+        }).join('') : '<div class="hint">No top item data yet.</div>';
+      }
+
+      function renderBudget() {
+        const monthUsed = sum(records.filter(r => sameMonth(r.date)));
+        const budget = Number(settings.budget || 0);
+        $('budgetInput').value = budget > 0 ? budget : '';
+        $('budgetUsedText').textContent = `${fmtMoney(monthUsed)} / ${fmtMoney(budget)}`;
+        const fill = $('budgetProgress');
+        if (budget <= 0) {
+          fill.style.width = '0%';
+          fill.className = 'progress-fill';
+          $('budgetStatus').textContent = "Set a budget to view this month\'s remaining balance and usage ratio.";
+          return;
+        }
+        const percent = monthUsed / budget * 100;
+        fill.style.width = Math.min(100, percent).toFixed(2) + '%';
+        fill.className = 'progress-fill' + (percent >= 100 ? ' danger' : percent >= 80 ? ' warn' : '');
+        const left = budget - monthUsed;
+        $('budgetStatus').textContent = left >= 0 ? `Used ${percent.toFixed(1)}%. You can still spend ${fmtMoney(left)} this month.` : `Over budget by ${fmtMoney(Math.abs(left))}. Consider reducing upcoming spending.`;
+      }
+
+      function refreshAll() {
+        renderHeader();
+        renderRecords();
+        renderStats();
+        renderBudget();
+      }
+
+      function switchPage(page) {
+        document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.id === 'page-' + page));
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+        if (page !== 'add') window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function bindEvents() {
+        $('recordForm').addEventListener('submit', handleSubmit);
+        $('resetFormBtn').addEventListener('click', () => resetForm(true));
+        $('categoryChips').addEventListener('click', evt => {
+          const btn = evt.target.closest('[data-category]');
+          if (btn) setCategory(btn.dataset.category);
+        });
+        $('categoryInput').addEventListener('change', evt => setCategory(evt.target.value));
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => switchPage(btn.dataset.page)));
+        $('jumpAddBtn').addEventListener('click', () => switchPage('add'));
+        ['searchInput', 'periodFilter', 'categoryFilter'].forEach(id => $(id).addEventListener('input', renderRecords));
+        $('clearSearchBtn').addEventListener('click', () => { $('searchInput').value = ''; renderRecords(); });
+        $('statsPeriod').addEventListener('change', renderStats);
+        $('recordsList').addEventListener('click', evt => {
+          const editBtn = evt.target.closest('[data-edit]');
+          const delBtn = evt.target.closest('[data-delete]');
+          if (editBtn) editRecord(editBtn.dataset.edit);
+          if (delBtn) deleteRecord(delBtn.dataset.delete);
+        });
+        $('saveBudgetBtn').addEventListener('click', () => {
+          const value = Number($('budgetInput').value || 0);
+          if (!Number.isFinite(value) || value < 0) {
+            showToast('Please enter a valid budget amount.');
+            return;
+          }
+          settings.budget = Number(value.toFixed(2));
+          saveSettings();
+          refreshAll();
+          showToast('Budget saved.');
+        });
+        $('modalCancel').addEventListener('click', hideConfirm);
+        $('modalOk').addEventListener('click', () => {
+          const action = pendingAction;
+          hideConfirm();
+          if (typeof action === 'function') action();
+        });
+        $('modalMask').addEventListener('click', evt => {
+          if (evt.target === $('modalMask')) hideConfirm();
+        });
+      }
+
+      function init() {
+        renderSelects();
+        resetForm(true);
+        bindEvents();
+        refreshAll();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
